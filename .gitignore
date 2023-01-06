@@ -1,0 +1,17 @@
+.vs
+*.stash
+*.r.Debug
+*import.cpp
+/[Dd]ebug
+/[Rr]elease
+*.Debug
+*.Release
+*.o
+Makefile
+*.user
+*.user.*
+*.autosave
+*.exe
+build**/*
+*/debug
+*/build*
