@@ -29,7 +29,7 @@
 
 using namespace std;
 //using namespace mirror;
-
+string root_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/face-detector---landmarker";
 
 void drawPolyline(cv::Mat& image, dlib::full_object_detection landmarks, int start, int end, bool isClosed = false) {
 	std::vector<cv::Point> points;
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 
 	//string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-slim/slim-320.mnn";
 	//string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-slim/slim-320-quant-ADMM-50.mnn";
-	string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-RFB/RFB-320.mnn";
+	string mnn_path = root_path + "/model/version-RFB/RFB-320.mnn";
 	//string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-RFB/RFB-320-quant-ADMM-32.mnn";
 	//string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-RFB/RFB-320-quant-KL-5792.mnn";
 	UltraFace ultraface(mnn_path, 320, 240, 1, 0.95); // config model input
@@ -145,7 +145,8 @@ int main(int argc, char** argv)
 	//mirror::LandmarkerFactory* landmarker_factory_ = new mirror::PFLDLandmarkerFactory();
 	mirror::LandmarkerFactory* landmarker_factory_ = new mirror::Peppa_PigLandmarkerFactory();
 	mirror::Landmarker* landmarker_ = landmarker_factory_->CreateLandmarker();
-	if (landmarker_->Init("D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/data/models") != 0) {
+	string lm_path = root_path + "/data/models";
+	if (landmarker_->Init(lm_path.data()) != 0) {
 		std::cout << "Init face landmarker failed." << std::endl;
 		return 10000;
 	}
