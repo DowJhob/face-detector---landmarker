@@ -31,107 +31,172 @@ using namespace std;
 //using namespace mirror;
 string root_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/face-detector---landmarker";
 
-void drawPolyline(cv::Mat& image, dlib::full_object_detection landmarks, int start, int end, bool isClosed = false) {
-	std::vector<cv::Point> points;
-	for (int i = start; i <= end; i++) {
-		points.push_back(cv::Point(landmarks.part(i).x(), landmarks.part(i).y()));
-	}
-	cv::polylines(image, points, isClosed, cv::Scalar(0, 255, 255), 2, 16);
-}
-void drawPolyline(cv::Mat& image, vector<dlib::point>  landmarks, int start, int end, bool isClosed = false) {
-	std::vector<cv::Point> points;
-	for (int i = start; i <= end; i++) {
-		points.push_back(cv::Point(landmarks[i].x(), landmarks[i].y()));
-	}
-	cv::polylines(image, points, isClosed, cv::Scalar(0, 255, 255), 2, 16);
-}
-void convert_rect_CV2DLIB(vector<Rect>& cv_rect, vector<dlib::rectangle>& dlib_rect, int pos)
-{
-	Rect temp_cv;
-	dlib::rectangle temp_dlib;
+#define meanC 10
 
-	temp_cv = cv_rect[pos];
-	temp_dlib.set_left((long)temp_cv.x);
-	temp_dlib.set_top((long)temp_cv.y);
-	temp_dlib.set_right((long)(temp_cv.x + temp_cv.width));
-	temp_dlib.set_bottom((long)(temp_cv.y + temp_cv.height));
-	dlib_rect.push_back(temp_dlib);
+int num = 70;
+chrono::steady_clock::time_point start;
+
+double meanR = 0;
+double meanL = 0;
+
+double meanAccR = 0;
+double meanAccL = 0;
+
+int meanCounter = 0;
+
+void calcMean(double R, double L)
+{
+	meanCounter++;
+
+	meanAccR += R;
+	meanAccL += L;
+
+	if (meanCounter > meanC)
+	{
+		meanR = meanAccR / meanC;
+		meanL = meanAccL / meanC;
+		meanAccR = 0;
+		meanAccL = 0;
+
+		meanCounter = 0;
+	}
 }
-void calculate_ear(cv::Mat& m, vector<cv::Point>& eye, double* ear)
+
+double calculate_ear_ZQ(vector<cv::Point>& eye)
 {
 	double A, B, C;
 	double temp_x[6], temp_y[6];
-	vector<Point2f> f;
 	for (int i = 0; i < 6; i++)
 	{
 		temp_x[i] = (double)eye[i].x;
 		temp_y[i] = (double)eye[i].y;
-
-		f.push_back(cv::Point(eye[i].x, eye[i].y));
 	}
 
-	A = (temp_x[5] - temp_x[1]) * (temp_x[5] - temp_x[1]);
-	A = sqrt(A + ((temp_y[5] - temp_y[1]) * (temp_y[5] - temp_y[1])));
+	A = temp_x[5] - temp_x[1];
+	A *= A;
+	double Ay = temp_y[5] - temp_y[1];
+	Ay *= Ay;
+	A = sqrt(A + Ay);
 
-	B = (temp_x[4] - temp_x[2]) * (temp_x[4] - temp_x[2]);
-	B = sqrt(B + ((temp_y[4] - temp_y[2]) * (temp_y[4] - temp_y[2])));
+	B = temp_x[4] - temp_x[2];
+	B *= B;
+	double By = temp_y[4] - temp_y[2];
+	By *= By;
+	B = sqrt(B + By);
 
-	C = (temp_x[3] - temp_x[0]) * (temp_x[3] - temp_x[0]);
-	C = sqrt(C + ((temp_y[3] - temp_y[0]) * (temp_y[3] - temp_y[0])));
+	C = temp_x[3] - temp_x[0];
+	C *= C;
+	double Cy = temp_y[3] - temp_y[0];
+	Cy *= Cy;
+	C = sqrt(C + Cy);
 
-	*ear = (A + B) / (2 * C);
-
-	//drawPolyline(m, f, true);
+	return (A + B) / (2 * C);
 }
-void calculate_ear_pfld(cv::Mat& m, vector<cv::Point>& eye, double* ear)
+double calculate_ear_pfld(vector<cv::Point>& eye)
 {
-	double A, B, C;
+	double A, B, AB, C;
 	double temp_x[8], temp_y[8];
-	vector<Point2f> f;
 	for (int i = 0; i < 8; i++)
 	{
 		temp_x[i] = (double)eye[i].x;
 		temp_y[i] = (double)eye[i].y;
-
-		f.push_back(cv::Point(eye[i].x, eye[i].y));
 	}
 
-	A = (temp_x[5] - temp_x[1]) * (temp_x[5] - temp_x[1]);
-	A = sqrt(A + ((temp_y[5] - temp_y[1]) * (temp_y[5] - temp_y[1])));
+	A = temp_x[7] - temp_x[1];
+	A *= A;
+	double Ay = temp_y[7] - temp_y[1];
+	Ay *= Ay;
+	A = sqrt(A + Ay);
 
-	B = (temp_x[5] - temp_x[3]) * (temp_x[5] - temp_x[3]);
-	B = sqrt(B + ((temp_y[5] - temp_y[3]) * (temp_y[5] - temp_y[3])));
+	B = temp_x[5] - temp_x[3];
+	B *= B;
+	double By = temp_y[5] - temp_y[3];
+	By *= By;
+	B = sqrt(B + By);
 
-	C = (temp_x[4] - temp_x[0]) * (temp_x[4] - temp_x[0]);
-	C = sqrt(C + ((temp_y[4] - temp_y[0]) * (temp_y[4] - temp_y[0])));
 
-	*ear = (A + B) / (2 * C);
+	AB = temp_x[6] - temp_x[2];
+	AB *= AB;
+	double ABy = temp_y[6] - temp_y[2];
+	ABy *= ABy;
+	AB = sqrt(AB + ABy);
 
-	//drawPolyline(m, f, true);
+
+
+
+
+	C = temp_x[4] - temp_x[0];
+	C *= C;
+	double Cy = temp_y[4] - temp_y[0];
+	Cy *= Cy;
+	C = sqrt(C + Cy);
+
+	return (A + B + AB) / (3 * C);
+}
+
+void pfld_processing(std::vector<cv::Point2f>& keypoints)
+{
+	vector<cv::Point> left_eye(&keypoints[60], &keypoints[68]);
+	vector<cv::Point> right_eye(&keypoints[68], &keypoints[76]);
+	calcMean(calculate_ear_pfld(right_eye), calculate_ear_pfld(left_eye));
+}
+
+void zq_processing(std::vector<cv::Point2f>& keypoints)
+{
+	vector<cv::Point> left_eye(&keypoints[52], &keypoints[58]);
+	vector<cv::Point> right_eye(&keypoints[58], &keypoints[64]);
+	auto it = left_eye.begin();
+	left_eye.insert(it + 2, keypoints[72]);
+	auto it2 = left_eye.begin();
+	left_eye.insert(it2 + 6, keypoints[73]);
+
+	it = right_eye.begin();
+	right_eye.insert(it + 2, keypoints[75]);
+	it2 = right_eye.begin();
+	right_eye.insert(it2 + 6, keypoints[76]);
+	//calcMean(calculate_ear_ZQ(right_eye), calculate_ear_ZQ(left_eye));
+	calcMean(calculate_ear_pfld(right_eye), calculate_ear_pfld(left_eye));
+}
+
+void peppa_processing(std::vector<cv::Point2f>& keypoints)
+{
+	vector<cv::Point> left_eye(&keypoints[60], &keypoints[68]);
+	vector<cv::Point> right_eye(&keypoints[68], &keypoints[76]);
+	calcMean(calculate_ear_pfld(right_eye), calculate_ear_pfld(left_eye));
+}
+
+void show(cv::Mat& frame)
+{
+	auto ear_ratioL = to_string(meanL);
+	cv::putText(frame,
+		"L " + ear_ratioL, cv::Point(20, 30),
+		cv::FONT_HERSHEY_SIMPLEX,
+		1, cv::Scalar(0, 0, 255));
+
+	auto ear_ratioR = to_string(meanR);
+	cv::putText(frame,
+		"R " + ear_ratioR, cv::Point(20, 70),
+		cv::FONT_HERSHEY_SIMPLEX,
+		1, cv::Scalar(0, 255, 0));
+
+	cv::putText(frame,
+		to_string(num), cv::Point(20, 400),
+		cv::FONT_HERSHEY_SIMPLEX,
+		0.5, cv::Scalar(0, 255, 0));
+
+	auto end = chrono::steady_clock::now();
+	chrono::duration<double> elapsed = end - start;
+	cout << "all time: " << elapsed.count() << " s" << endl;
+	cv::imshow("UltraFace", frame);
 }
 
 int main(int argc, char** argv)
 {
-
-	//std::string lbf_path("D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/lbfmodel.yaml");
-	//std::string kaz_path("D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/face_landmark_model.dat");
-	//cv::Ptr<cv::face::Facemark> facemark = cv::face::createFacemarkLBF();
-	//cv::Ptr<cv::face::Facemark> facemark = cv::face::createFacemarkKazemi();
-	//cv::Ptr<cv::face::Facemark> facemark = cv::face::createFacemarkAAM();
-	//facemark->loadModel(lbf_path);
-	//facemark->loadModel(kaz_path);
-
-
-	//dlib::shape_predictor sp;
-	////dlib::deserialize("D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/shape_predictor_68_face_landmarks.dat") >> sp;
-	//dlib::deserialize("D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/shape_predictor_68_face_landmarks_GTX.dat") >> sp; 
-
-
-	//string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-slim/slim-320.mnn";
-	//string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-slim/slim-320-quant-ADMM-50.mnn";
-	string mnn_path = root_path + "/model/version-RFB/RFB-320.mnn";
-	//string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-RFB/RFB-320-quant-ADMM-32.mnn";
-	//string mnn_path = "D:/Users/Bimbo/Documents/GitHub/drowsy-detectors/UF-MNN/model/version-RFB/RFB-320-quant-KL-5792.mnn";
+	//string mnn_path = root_path + "/data/models/version-slim/slim-320.mnn";
+	//string mnn_path = root_path + "/data/models/slim-320-quant-ADMM-50.mnn";
+	string mnn_path = root_path + "/data/models/version-RFB/RFB-320.mnn";
+	//string mnn_path = root_path + "/data/models/RFB-320-quant-ADMM-32.mnn";
+	//string mnn_path = root_path + "/data/models/RFB-320-quant-KL-5792.mnn";
 	UltraFace ultraface(mnn_path, 320, 240, 1, 0.95); // config model input
 
 	auto stream = cv::VideoCapture(0, cv::CAP_MSMF);
@@ -141,7 +206,7 @@ int main(int argc, char** argv)
 
 
 
-	////mirror::LandmarkerFactory* landmarker_factory_ = new mirror::ZQLandmarkerFactory();
+	//mirror::LandmarkerFactory* landmarker_factory_ = new mirror::ZQLandmarkerFactory();
 	//mirror::LandmarkerFactory* landmarker_factory_ = new mirror::PFLDLandmarkerFactory();
 	mirror::LandmarkerFactory* landmarker_factory_ = new mirror::Peppa_PigLandmarkerFactory();
 	mirror::Landmarker* landmarker_ = landmarker_factory_->CreateLandmarker();
@@ -150,11 +215,6 @@ int main(int argc, char** argv)
 		std::cout << "Init face landmarker failed." << std::endl;
 		return 10000;
 	}
-
-
-
-
-
 
 
 
@@ -167,7 +227,6 @@ int main(int argc, char** argv)
 
 	std::cerr << "CAP_PROP_FRAME_HEIGHT\n" << stream.get(cv::CAP_PROP_FRAME_HEIGHT);
 
-	int num = 32;
 	char key = 0;
 	constexpr int64 kTimeoutNs = 1000;
 	std::vector<int> ready_index;
@@ -175,22 +234,18 @@ int main(int argc, char** argv)
 	{
 		//if (cv::VideoCapture::waitAny({ stream }, ready_index, kTimeoutNs))
 		{
-			cv::Mat frame, gray, canny;
+			cv::Mat frame, gray, canny, res;
 			//stream.retrieve(frame);
 			stream.read(frame);
 
-
-			auto start = chrono::steady_clock::now();
+			start = chrono::steady_clock::now();
 			vector<FaceInfo> face_info;
 			ultraface.detect(frame, face_info);
-			std::vector<cv::Rect> faces;
 
 			for (auto& face : face_info)
 			{
 				cv::Point pt1(face.x1, face.y1);
 				cv::Point pt2(face.x2, face.y2);
-				faces.push_back(cv::Rect(pt1, pt2));
-				cv::rectangle(frame, pt1, pt2, cv::Scalar(0, 255, 0), 2);
 				//cv::format("%.4f", face.score);
 
 				auto s = to_string(face.score);
@@ -200,68 +255,43 @@ int main(int argc, char** argv)
 					cv::FONT_HERSHEY_SIMPLEX,
 					0.5, cv::Scalar(0, 255, 0));
 
-			//cv::cvtColor(frame, gray, cv::COLOR_BGR2RGB);
-				//cv::Canny(gray, canny, 10, 100, 3);
+				//cv::cvtColor(frame, gray, cv::COLOR_RGBA2GRAY);
+					//cv::Canny(gray, canny, 10, 100, 3);
 
 				std::vector<cv::Point2f> keypoints;
-				landmarker_->ExtractKeypoints(frame, cv::Rect(pt1, pt2), &keypoints);
+
+				cv::cvtColor(frame, res, cv::COLOR_RGB2BGR);
+				landmarker_->ExtractKeypoints(res, cv::Rect(pt1, pt2), &keypoints);
 
 				int num_keypoints = static_cast<int>(keypoints.size());
-				for (int j = 0; j < 68; ++j) {
-					cv::circle(frame, keypoints[j], 1, cv::Scalar(0, 0, 255), 1);
+				for (int j = 0; j < 98; ++j) {
+					cv::circle(frame, keypoints[j], 1, cv::Scalar(255, 0, 0), 1);
 				}
 
-				//cv::circle(frame, keypoints[num], 3, cv::Scalar(0, 0, 255), 1);
+				cv::circle(frame, keypoints[num], 3, cv::Scalar(0, 0, 255), 1);
 
-				double ear;
-				//  ZQCNN
-				//vector<cv::Point> left_eye(&keypoints[52], &keypoints[58]);
-				//vector<cv::Point> right_eye(&keypoints[58], &keypoints[64]);
-				// 
-				//  PFLD
+				//zq_processing(keypoints);
+				//pfld_processing(keypoints);
+				peppa_processing(keypoints);
+
 				vector<cv::Point> left_eye(&keypoints[60], &keypoints[68]);
 				vector<cv::Point> right_eye(&keypoints[68], &keypoints[76]);
 
 
+				polylines(frame, left_eye, true, cv::Scalar(0, 255, 255), 1, 16);
 
-				//drawPolyline(frame, left_eye, 0, 7, true);
-				polylines(frame, left_eye, true, COLOR, 2, 16);
-				polylines(frame, right_eye, true, COLOR, 2, 16);
-				//drawPolyline(frame, right_eye, 0, 5, true);
-
-				cv::Point p(keypoints[0].x - 150, keypoints[0].y);
-				//calculate_ear(frame, left_eye, &ear);
-				calculate_ear_pfld(frame, left_eye, &ear);
-				auto ear_ratio = to_string(ear);
-				cv::putText(frame,
-					ear_ratio, p,
-					cv::FONT_HERSHEY_SIMPLEX,
-					1, cv::Scalar(0, 0, 255));
-
-				cv::Point pp(keypoints[32].x + 10, keypoints[32].y);
-				//calculate_ear(frame, right_eye, &ear);
-				calculate_ear_pfld(frame, right_eye, &ear);
-				ear_ratio = to_string(ear);
-				cv::putText(frame,
-					ear_ratio, pp,
-					cv::FONT_HERSHEY_SIMPLEX,
-					1, cv::Scalar(0, 255, 0));
+				////drawPolyline(frame, left_eye, 0, 7, true);
+				//polylines(frame, left_eye, true, cv::Scalar(0, 0, 255), 2, 16);
+				//polylines(frame, right_eye, true, cv::Scalar(0, 255, 0), 2, 16);
+				////drawPolyline(frame, right_eye, 0, 5, true);
 
 
+				cv::rectangle(frame, pt1, pt2, cv::Scalar(0, 255, 0), 2);
 			}
-			cv::putText(frame,
-				to_string(num), cv::Point(20, 20),
-				cv::FONT_HERSHEY_SIMPLEX,
-				0.5, cv::Scalar(0, 255, 0));
-			//	
+			show(frame);
 
 
 
-
-			auto end = chrono::steady_clock::now();
-			chrono::duration<double> elapsed = end - start;
-			cout << "all time: " << elapsed.count() << " s" << endl;
-			cv::imshow("UltraFace", frame);
 			key = cv::waitKey(1);
 			if (key == 'a')
 				num++;
@@ -269,6 +299,7 @@ int main(int argc, char** argv)
 				num--;;
 
 			// cv::imwrite(result_name, frame);
+
 		}
 	}
 	stream.release();

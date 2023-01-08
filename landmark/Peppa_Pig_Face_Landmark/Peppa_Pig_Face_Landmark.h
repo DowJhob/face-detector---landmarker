@@ -27,7 +27,7 @@ namespace mirror {
         MNN::Session* pig_sess_ = nullptr;
         MNN::Tensor* input_tensor_ = nullptr;
 
-        const cv::Size inputSize_ = cv::Size(160, 160);
+        const cv::Size inputSize_ = cv::Size(128, 128);
         const float meanVals_[3] = { 127.5f, 127.5f, 127.5f };
         const float normVals_[3] = { 0.0078125f, 0.0078125f, 0.0078125f };
 

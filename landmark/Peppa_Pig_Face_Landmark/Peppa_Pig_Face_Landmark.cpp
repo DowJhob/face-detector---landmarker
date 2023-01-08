@@ -4,6 +4,7 @@
 #include <string>
 
 #include "opencv2/imgproc.hpp"
+#include <opencv2/highgui.hpp>
 
 namespace mirror {
     Peppa_Pig_Face_Landmarker::Peppa_Pig_Face_Landmarker()
@@ -32,7 +33,7 @@ namespace mirror {
         schedule_config.type = MNN_FORWARD_CPU;
         schedule_config.numThread = 1;
         MNN::BackendConfig backend_config;
-        backend_config.memory = MNN::BackendConfig::Memory_Normal;
+        backend_config.memory = MNN::BackendConfig::MemoryMode::Memory_High;
         backend_config.power = MNN::BackendConfig::Power_High;
         backend_config.precision = MNN::BackendConfig::Precision_High;
         schedule_config.backendConfig = &backend_config;
@@ -57,8 +58,24 @@ namespace mirror {
         return 0;
     }
 
-    int Peppa_Pig_Face_Landmarker::ExtractKeypoints(const cv::Mat& img_src, const cv::Rect& face, std::vector<cv::Point2f>* keypoints)
+    int Peppa_Pig_Face_Landmarker::ExtractKeypoints(const cv::Mat& img_src, const cv::Rect& face2, std::vector<cv::Point2f>* keypoints)
     {
+        //// ===== preprocess ===========================
+         cv::Rect face;
+        int add = face2.width > face2.height ? face2.width : face2.height;
+        double base_extend_range0 = 0.2;
+        int face_width = (1 + 2 * base_extend_range0) * face2.width;
+
+        //// make the box as square
+        face.x = (face2.x + face2.width / 2) - face_width/2;
+        face.y = (face2.y + face2.height / 2) - face_width/2;
+        face.width = face_width;
+        face.height = face_width;
+
+
+
+
+
         std::cout << "start extract keypoints." << std::endl;
         keypoints->clear();
         if (!initialized_) {
@@ -74,9 +91,12 @@ namespace mirror {
         int height = img_face.rows;
         cv::Mat img_resized;
         cv::resize(img_face, img_resized, inputSize_);
-        //pig_interpreter_->resizeTensor(input_tensor_, 1, 3, height, width);
+
+        //cv::imshow("img_resized", img_resized);
+
         pretreat_->convert(img_resized.data, inputSize_.width, inputSize_.height, 0, input_tensor_);
 
+        //pig_interpreter_->resizeTensor(input_tensor_, 1, 3, height, width);
         //pig_interpreter_->resizeSession(pig_sess_);
 
 
@@ -90,7 +110,7 @@ namespace mirror {
         MNN::Tensor landmark_tensor(output_landmark, output_landmark->getDimensionType());
         output_landmark->copyToHostTensor(&landmark_tensor);
 
-        for (int i = 0; i < 106; ++i) {
+        for (int i = 0; i < 98; ++i) {
             cv::Point2f curr_pt(landmark_tensor.host<float>()[2 * i + 0] * width + face.x,
                 landmark_tensor.host<float>()[2 * i + 1] * height + face.y);
             keypoints->push_back(curr_pt);
